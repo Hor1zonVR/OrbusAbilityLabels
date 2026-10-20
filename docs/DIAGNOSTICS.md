@@ -1,22 +1,20 @@
-# First diagnostic run
+# v0.1.1 targeted diagnostic (VR freeze mitigation)
 
-This build intentionally **does not draw labels**. We need to find the *actual* ability identifiers and transforms before labelling to avoid misleading players in combat.
+v0.1.0 was too broad: each hotkey captured approximately 53,500 GameObjects, 17,900 MonoBehaviours, and 10,500 Renderers **synchronously in Unity's update loop**. User-reported VR eye image freeze followed pressing Ctrl+Shift+L. Although the BepInEx log shows all captures saved without errors, a main-thread render stall is the leading diagnosis. Do not ask anyone to rerun v0.1.0.
 
-## Capture sequence
+The initial My Orbus Renewed captures already found:
+- Bard: `PlayerRigv4/Avatar/Bard(Clone)/Instruments/NotesContainer/EquippedSlot1 ... (5)/InstrumentN(Clone)`
+- Musketeer: `PlayerRigv4/Controller (right)/OrbLauncher/OrbSlot0..3`
+- Active named root orbs: `ShieldOrb(Clone)`, `RenewOrb(Clone)`, `GravityOrb(Clone)`, `BigHealOrb(Clone)`
 
-1. Equip Bard with its instruments out, preferably in an empty room so nearby players do not fill the report.
-2. Press **Ctrl+Shift+L** on the desktop keyboard. Confirm `[AbilityLabels] Capture 1 saved` in `BepInEx/LogOutput.log`.
-3. Equip Musketeer and make its ability orbs visible; press **Ctrl+Shift+L** again.
-4. Optional: repeat with one equipped ability swapped, to identify what changed.
-5. Leave the game. Send `BepInEx/AbilityLabelsReport.txt` with the class/capture order and a note of which abilities were equipped. Check the file for nearby player names before sharing.
+v0.1.1 only visits these specific local objects with a maximum of 70 nodes per weapon hierarchy; four exact-name Musketeer orbs are checked near the player's eye camera. There is no global `Resources.FindObjectsOfTypeAll` call. No Unity objects or abilities are modified. Capture on Ctrl+Shift+L is optional; there is already enough information to proceed investigating the visual label MVP.
 
-The report is in **the launched RebornManager game instance's** `BepInEx` folder. It contains the name/path of nearby renderers and matching component types, not your inventory data, world coordinates or authentication data. Snapshots are manual and limited to 12 each game launch. Each launch starts a fresh report.
+**Do not assume `BigHealOrb(Clone)` means Cure Wounds without an explicit ability ID mapping.** Bard InstrumentN names are not yet mapped to ability names. Only display labels once mapping is verified.
 
-## What we need to learn
-
-- Does the weapon or an equipped ability carry a native component name we can identify?
-- Are Bard instrument objects and Musketeer orbs parented under a stable local-player weapon transform?
-- Do ability changes replace GameObjects, update fields on a reusable slot, or just change materials?
-- Is the correct label anchored to the orb or to a separate stable slot transform?
-
-After the log reveals candidates we can write a more focused second diagnostic (if necessary), and only then implement the labels. No guessing from orb appearance.
+To release locally from My Orbus Renewed, once:
+```powershell
+$repo = "$env:USERPROFILE\OneDrive\Documents\OrbusAbilityLabels"
+git -C $repo pull --ff-only
+& "$repo\release.ps1" -GameDir "$env:LOCALAPPDATA\OrbusRebornModdingInstances\My Orbus Renewed"
+```
+Build references are cached for later runs. This script **does not install into the game**.
