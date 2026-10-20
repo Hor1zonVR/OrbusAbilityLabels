@@ -5,12 +5,16 @@ using BepInEx.Unity.IL2CPP;
 
 namespace OrbusAbilityLabels;
 
-[BepInPlugin("com.horizon.orbusabilitylabels", "OrbusAbilityLabels", "0.2.0")]
+[BepInPlugin("com.horizon.orbusabilitylabels", "OrbusAbilityLabels", "0.2.1")]
 public sealed class Plugin : BasePlugin
 {
     internal static BepInEx.Logging.ManualLogSource Logger = null!;
     internal static ConfigEntry<bool> Enabled = null!;
     internal static ConfigEntry<bool> ShowBard = null!;
+    internal static ConfigEntry<bool> ShowBardMeshPanel = null!;
+    internal static ConfigEntry<float> BardPanelScale = null!;
+    internal static ConfigEntry<float> BardPanelSideOffset = null!;
+    internal static ConfigEntry<float> BardPanelHeight = null!;
     internal static ConfigEntry<bool> ShowMusketeer = null!;
     internal static ConfigEntry<float> LabelScale = null!;
     internal static ConfigEntry<float> VerticalOffset = null!;
@@ -26,6 +30,18 @@ public sealed class Plugin : BasePlugin
         Logger = Log;
         Enabled = Config.Bind("Labels", "Enabled", true,
             "Show world-space abbreviations above known local ability objects.");
+        ShowBardMeshPanel = Config.Bind("Bard Inspector", "ShowTemporaryPanel", true,
+            "Temporarily show a compact live Bard slot -> instrument ID -> mesh-name panel.");
+        BardPanelScale = Config.Bind("Bard Inspector", "PanelScale", 1.0f,
+            new ConfigDescription("Temporary Bard inspector panel size.",
+                new AcceptableValueRange<float>(0.5f, 2f)));
+        BardPanelSideOffset = Config.Bind("Bard Inspector", "SideOffsetMetres", 0.35f,
+            new ConfigDescription("Horizontal position of panel next to Bard instruments.",
+                new AcceptableValueRange<float>(-0.5f, 0.5f)));
+        BardPanelHeight = Config.Bind("Bard Inspector", "HeightMetres", 0.22f,
+            new ConfigDescription("Panel height above Bard instruments.",
+                new AcceptableValueRange<float>(0.07f, 0.6f)));
+
         ShowBard = Config.Bind("Labels", "ShowBard", true,
             "Show temporary Bard instrument IDs; not verified ability names.");
         ShowMusketeer = Config.Bind("Labels", "ShowMusketeer", true,
@@ -59,9 +75,10 @@ public sealed class Plugin : BasePlugin
                 new AcceptableValueRange<float>(0.5f, 3f)));
 
         AddComponent<AbilityLabelVisuals>();
+        AddComponent<BardMeshPanel>();
         AddComponent<AbilityLabelDiagnostics>();
-        Log.LogInfo("[AbilityLabels] v0.2.0 VISUAL PREVIEW loaded.");
+        Log.LogInfo("[AbilityLabels] v0.2.1 BARD MESH INSPECTOR loaded.");
         Log.LogInfo("[AbilityLabels] Musketeer SH/RN/GR/BH; Bard temporary B-number instrument labels.");
-        Log.LogInfo("[AbilityLabels] No hotkey needed to see labels; Ctrl+Shift+L remains optional diagnostic.");
+        Log.LogInfo("[AbilityLabels] Bard mesh panel automatically shows slot, instrument ID, mesh and logs loadout changes. No shortcut needed.");
     }
 }

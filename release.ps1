@@ -124,9 +124,9 @@ try {
     Write-Host '[2/2] Publishing exact compiled DLL to GitHub Releases...' -ForegroundColor Yellow
     $commit = (& git rev-parse HEAD).Trim()
     Assert-Success 'Reading commit'
-    $notes = "AbilityLabels ${tag}: first world-space VR label preview. Musketeer SH/RN/GR/BH on four recognized named orb objects. Bard has temporary B-number instrument ID markers, not ability names. No full-scene scans or game modifications. See README."
+    $notes = "AbilityLabels ${tag}: temporary live Bard instrument mesh inspector panel. Shows all six equipped slots, InstrumentN IDs and mesh names, updates on loadout changes, automatically saves AbilityLabelsBardMap.txt. Existing orb labels retained; supports new unknown Bard IDs as B-number markers. No full-scene scans. See README."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$commit,
-              '--title',"OrbusAbilityLabels $tag (visual preview)",'--notes',$notes)
+              '--title',"OrbusAbilityLabels $tag (Bard mesh inspector)",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
     & gh @args
     Assert-Success 'GitHub release'

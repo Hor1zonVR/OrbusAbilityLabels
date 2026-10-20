@@ -2,7 +2,7 @@
 
 OrbusVR client-side BepInEx IL2CPP quality-of-life mod that adds small floating text above physical ability orbs.
 
-## v0.2.0 - first visual prototype
+## v0.2.0 - first visual prototype (still included in v0.2.1)
 
 This is an experimental first visual build for My Orbus Renewed. The source is on GitHub, but the DLL still needs to be compiled and tested locally before it is verified in VR.
 
@@ -46,3 +46,19 @@ Leave an individual label blank to hide it. The eventual RebornMenu settings can
 ## Diagnostics and safety history
 
 v0.1.0 performed a synchronous scan of about 82,000 Unity objects and coincided with a frozen-eye image in VR. Do not use v0.1.0 in VR. v0.1.1 replaced that with a targeted probe and successfully saved three user captures in 12, 4 and 4 ms, respectively. v0.2.0 retains only the smaller optional diagnostic on Ctrl+Shift+L. The visual test does not need that shortcut.
+
+## v0.2.1 - temporary Bard mesh identification UI
+
+This is the recommended build for mapping Bard instruments during ONE VR session. The earlier v0.2.0 visual-label experiment remains, but this build additionally shows a small inspector beside the Bard instruments only while Bard is equipped.
+
+The panel reads the SIX local `EquippedSlot1` slots under the actual `NotesContainer` and updates every 0.35 seconds. Each row displays SLOT, Instrument ID (I3, I4, etc), and the actual MeshFilter.sharedMesh.name (for example `healOrb-01`). Empty slots show `--`. A new/unseen instrument also automatically gets a temporary `B<number>` floating label.
+
+**Suggested single-session workflow:** Equip Bard, open your in-game ability list to learn a skill name, swap one instrument at a time, and read the changed ID/mesh on this temporary panel. Repeat until you have matched all abilities. You don't need to stop the game between swaps. Report the corresponding names afterwards; our code does not claim to read the game's ability names yet.
+
+Every time the local Bard loadout changes, the plugin ALSO appends the entire current six-row mapping to `My Orbus Renewed/BepInEx/AbilityLabelsBardMap.txt`. Send this file after your session alongside the ability names (and optionally screenshots). The auto-log is capped to 120 changed snapshots per session and never scans the whole scene.
+
+The panel is purely read-only and automatically hides on class change. It floats next to the instruments, not on the VR camera. It never edits skills or inventory.
+
+Options under `[Bard Inspector]` in BepInEx config: `ShowTemporaryPanel` (default true), `PanelScale`, `SideOffsetMetres` and `HeightMetres`. Once mapping is done, set ShowTemporaryPanel=false; a future version will remove it.
+
+Build from any PowerShell folder with the usual `git -C $repo pull --ff-only` then `& $repo\release.ps1`. RebornManager will install the GitHub release after publication. If compilation fails, send output instead of manually copying DLLs.

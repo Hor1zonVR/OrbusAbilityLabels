@@ -41,7 +41,7 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
         {
             Plugin.Logger.LogWarning("[AbilityLabels] Font unavailable: " + ex.Message);
         }
-        Plugin.Logger.LogInfo("[AbilityLabels] v0.2.0 visuals active: local Bard instruments and four named Musketeer orbs.");
+        Plugin.Logger.LogInfo("[AbilityLabels] v0.2.1 visuals active: local Bard instruments and four named Musketeer orbs.");
         Plugin.Logger.LogInfo("[AbilityLabels] No global object enumeration. No gameplay modifications.");
     }
 
@@ -117,9 +117,14 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
                     !name.EndsWith("(Clone)", StringComparison.Ordinal)) continue;
 
                 string number = name.Substring(10, name.Length - 10 - 7);
-                if (int.TryParse(number, out int instrumentId) &&
-                    Plugin.BardNames.TryGetValue(instrumentId, out var config))
-                    Bind("Bard." + i, item, config.Value);
+                if (int.TryParse(number, out int instrumentId))
+                {
+                    // Also handle instrument IDs not in the six originally captured.
+                    // New instruments will get a temporary B-number until mapped.
+                    string label = Plugin.BardNames.TryGetValue(instrumentId, out var config)
+                        ? config.Value : "B" + instrumentId;
+                    Bind("Bard." + i, item, label);
+                }
                 break;
             }
         }
