@@ -124,9 +124,9 @@ try {
     Write-Host '[2/2] Publishing exact compiled DLL to GitHub Releases...' -ForegroundColor Yellow
     $commit = (& git rev-parse HEAD).Trim()
     Assert-Success 'Reading commit'
-    $notes = "AbilityLabels ${tag}: temporary live Bard instrument mesh inspector panel. Shows all six equipped slots, InstrumentN IDs and mesh names, updates on loadout changes, automatically saves AbilityLabelsBardMap.txt. Existing orb labels retained; supports new unknown Bard IDs as B-number markers. No full-scene scans. See README."
+    $notes = "AbilityLabels ${tag}: fixes gigantic TextMesh lettering, adds 8 verified Bard skill abbreviations matched by current mesh name (GH CW IJ HA PR IN SP DF), and disables the temporary debug panel by default. The debug mesh inspector remains optional and much smaller. No full-scene scans. See README."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$commit,
-              '--title',"OrbusAbilityLabels $tag (Bard mesh inspector)",'--notes',$notes)
+              '--title',"OrbusAbilityLabels $tag (compact labels)",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
     & gh @args
     Assert-Success 'GitHub release'

@@ -41,7 +41,7 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
         {
             Plugin.Logger.LogWarning("[AbilityLabels] Font unavailable: " + ex.Message);
         }
-        Plugin.Logger.LogInfo("[AbilityLabels] v0.2.1 visuals active: local Bard instruments and four named Musketeer orbs.");
+        Plugin.Logger.LogInfo("[AbilityLabels] v0.2.2: compact labels with Bard mesh-name mapping (8 abilities).");
         Plugin.Logger.LogInfo("[AbilityLabels] No global object enumeration. No gameplay modifications.");
     }
 
@@ -68,7 +68,7 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
     private void Update()
     {
         if (Time.realtimeSinceStartup < _nextRefresh) return;
-        _nextRefresh = Time.realtimeSinceStartup + 0.85f;
+        _nextRefresh = Time.realtimeSinceStartup + 0.35f;
         try { Refresh(); }
         catch (Exception ex)
         {
@@ -116,14 +116,14 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
                 if (!name.StartsWith("Instrument", StringComparison.Ordinal) ||
                     !name.EndsWith("(Clone)", StringComparison.Ordinal)) continue;
 
-                string number = name.Substring(10, name.Length - 10 - 7);
-                if (int.TryParse(number, out int instrumentId))
+                // Bind by the current rendered MESH, not slot or InstrumentN.
+                // That also works for the two newly identified defense meshes.
+                MeshFilter filter = item.GetComponent<MeshFilter>();
+                if (filter != null && filter.sharedMesh != null)
                 {
-                    // Also handle instrument IDs not in the six originally captured.
-                    // New instruments will get a temporary B-number until mapped.
-                    string label = Plugin.BardNames.TryGetValue(instrumentId, out var config)
-                        ? config.Value : "B" + instrumentId;
-                    Bind("Bard." + i, item, label);
+                    string meshName = filter.sharedMesh.name;
+                    if (Plugin.BardMeshNames.TryGetValue(meshName, out var config))
+                        Bind("Bard." + i, item, config.Value);
                 }
                 break;
             }
@@ -136,7 +136,7 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
         {
             string name = KnownOrbs[i];
             if (!Plugin.MusketeerNames.TryGetValue(name, out var config)) continue;
-            // Only 4 exact named lookups, every ~0.85 seconds; never a full scan.
+            // Only four exact named lookups periodically; never a full scan.
             GameObject orb = GameObject.Find(name);
             if (orb == null || !orb.activeInHierarchy) continue;
             if (Vector3.Distance(gun.position, orb.transform.position) > 1.0f)
@@ -182,7 +182,7 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
             var backing = new GameObject("Shadow");
             backing.layer = 0;
             backing.transform.SetParent(root.transform, false);
-            backing.transform.localPosition = new Vector3(-0.002f, -0.002f, 0.001f);
+            backing.transform.localPosition = new Vector3(-0.00065f, -0.00065f, -0.0006f);
             TextMesh shadow = backing.AddComponent<TextMesh>();
             SetupText(shadow, new Color(0.05f, 0.04f, 0.06f, 0.96f));
 
@@ -201,7 +201,7 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
         t.anchor = TextAnchor.MiddleCenter;
         t.alignment = TextAlignment.Center;
         t.fontSize = 48;
-        t.characterSize = 0.036f;
+        t.characterSize = Plugin.TextCharacterSize.Value;
         t.fontStyle = FontStyle.Bold;
         t.color = color;
         if (_font != null)

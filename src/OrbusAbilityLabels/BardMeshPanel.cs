@@ -39,7 +39,7 @@ public sealed class BardMeshPanel : MonoBehaviour
         try
         {
             File.WriteAllText(_reportPath,
-                "OrbusAbilityLabels v0.2.1 - Bard equipped instrument snapshots" +
+                "OrbusAbilityLabels v0.2.2 - Bard equipped instrument snapshots" +
                 Environment.NewLine +
                 "InstrumentN and mesh ID are Unity object identifiers, NOT verified ability names." +
                 Environment.NewLine +
@@ -136,8 +136,8 @@ public sealed class BardMeshPanel : MonoBehaviour
         EnsurePanel(root!);
         var text = new StringBuilder(256);
         var state = new StringBuilder(200);
-        text.AppendLine("BARD  /  MESH IDs");
-        text.AppendLine("SLOT    ID    MESH");
+        text.AppendLine("BARD MESHES");
+        text.AppendLine("SLOT  ID   MESH");
 
         for (int index = 0; index < Slots; index++)
         {
@@ -180,14 +180,14 @@ public sealed class BardMeshPanel : MonoBehaviour
             }
 
             string idText = id < 0 ? "--" : "I" + id;
-            text.Append(index + 1).Append("          ")
-                .Append(idText).Append("     ")
+            text.Append(index + 1).Append("      ")
+                .Append(idText).Append("   ")
                 .AppendLine(mesh);
             state.Append(index + 1).Append(':')
                 .Append(idText).Append(':').Append(mesh).Append('|');
         }
 
-        text.Append("Swap one instrument at a time");
+        text.Append("Optional debug view");
         string current = state.ToString();
 
         if (_text != null && _text.text != text.ToString())
@@ -238,7 +238,7 @@ public sealed class BardMeshPanel : MonoBehaviour
         shadowObject.layer = 0;
         shadowObject.transform.SetParent(panel.transform, false);
         shadowObject.transform.localPosition =
-            new Vector3(-0.0015f, -0.0015f, 0.001f);
+            new Vector3(-0.00065f, -0.00065f, -0.0006f);
         TextMesh shadow = shadowObject.AddComponent<TextMesh>();
         Configure(shadow, new Color(0.03f, 0.025f, 0.045f, 0.98f));
 
@@ -253,7 +253,7 @@ public sealed class BardMeshPanel : MonoBehaviour
         t.anchor = TextAnchor.UpperLeft;
         t.alignment = TextAlignment.Left;
         t.fontSize = 40;
-        t.characterSize = 0.025f;
+        t.characterSize = Plugin.BardPanelCharacterSize.Value;
         t.fontStyle = FontStyle.Bold;
         t.lineSpacing = 1.05f;
         t.color = color;

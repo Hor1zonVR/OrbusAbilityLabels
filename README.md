@@ -1,64 +1,55 @@
 # OrbusAbilityLabels
 
-OrbusVR client-side BepInEx IL2CPP quality-of-life mod that adds small floating text above physical ability orbs.
+Client-side BepInEx IL2CPP mod for tiny labels immediately ABOVE the real Bard instruments and Musketeer orbs in My Orbus Renewed.
 
-## v0.2.0 - first visual prototype (still included in v0.2.1)
+## v0.2.2: fixed giant text; verified Bard labels
 
-This is an experimental first visual build for My Orbus Renewed. The source is on GitHub, but the DLL still needs to be compiled and tested locally before it is verified in VR.
+The previous v0.2.1 visual test made the text far too large. Both the floating labels and the optional debug panel now use greatly reduced Unity TextMesh.characterSize, plus optional text-size settings. The debug panel is **OFF by default**, including for installations that saved the old ShowTemporaryPanel=true preference (we use a NEW config key).
 
-**Musketeer:** SH, RN, GR and BH appear above nearby real ShieldOrb(Clone), RenewOrb(Clone), GravityOrb(Clone) and BigHealOrb(Clone) objects only when your local OrbLauncher is active. BH refers to BigHealOrb: it is not a claim that the spell is Cure Wounds.
+User-verified Bard CURRENT MESH -> ABILITY NAME -> ABBREVIATION (20 Oct 2026):
 
-**Bard:** B2, B3, B4, B5, B6 and B8 are temporary instrument IDs, not actual skill names. The labels attach to the six current InstrumentN(Clone) objects inside the local Bard NotesContainer. These markers will let us validate placement and determine the true ability mapping later.
+| Mesh name | Ability | Label |
+| --- | --- | --- |
+| healOrb-01 | Gentle Healing | GH |
+| healOrb-02 | Cure Wounds | CW |
+| atkOrb-02 | Instrument of Justice | IJ |
+| atkOrb-01 | Harm | HA |
+| defOrb-04 | Protection | PR |
+| defOrb-02 | Inspiration | IN |
+| defOrb-01 | Speed | SP |
+| defOrb-03 | Defense | DF |
 
-Labels use VR-facing TextMesh with subtle dark shadow, a small world-up offset and per-label configuration. They automatically hide on class change or when their bound object disappears. No gameplay mechanics or network calls are modified.
+Labels are bound to the **actual current MeshFilter.sharedMesh.name**, never the equipped slot number or a hardcoded InstrumentN ID. The mod checks only the local Bard six-slot hierarchy every 0.35 seconds. The previously observed four Musketeer orbs remain SH/RN/GR/BH. Unknown meshes are not given incorrect guessed names.
 
-**Important:** The prototype finds only the four already-discovered Musketeer names and follows the local Bard instrument hierarchy. It does not run any expensive full-scene Unity object enumeration.
+## Single-session visual test
 
-## Test
+1. Run release.ps1 from your clone to compile and publish v0.2.2 against saved My Orbus Renewed BepInEx interop, then update AbilityLabels in RebornManager.
+2. Launch with Bard. The giant debug UI should be GONE. There should be only **small** GH/CW/IJ/HA/PR/IN/SP/DF labels, each immediately above its orb.
+3. Move Bard instruments around and swap some ability loadout slots, especially Speed and Defense. Each abbreviation should follow the correct orb; if a mesh changes while moving, report when labels disappear.
+4. Switch to Musketeer and verify its floating SH/RN/GR/BH text is equally small.
+5. Send a screenshot or short recording for size, legibility, angle, and placement. If there's a freeze or error, stop and send BepInEx/LogOutput.log.
 
-1. Build and publish v0.2.0 with the local release.ps1 script. Refresh RebornManager and update AbilityLabels in My Orbus Renewed.
-2. Launch Orbus, equip Bard, and inspect the B-number markers above the instruments. Check whether they remain above their correct orbs while you move.
-3. Switch to Musketeer and check SH, RN, GR and BH, moving your gun and orbs. No shortcut is needed to display labels.
-4. Send a screenshot or short recording showing the label position, orientation and scale, plus BepInEx/LogOutput.log if anything is missing.
-5. If VR freezes again, stop testing and exit the game; do not retry the old v0.1.0 diagnostic.
+## Options
 
-## Build and release
+After loading once, edit My Orbus Renewed/BepInEx/config/com.horizon.orbusabilitylabels.cfg (with game closed):
 
-Run these commands in PowerShell from any folder:
+- [Labels] Enabled, ShowBard, ShowMusketeer, Scale, **TextSize** (default 0.0025), AboveOrbMetres, TowardHeadMetres
+- [Bard Abilities] eight editable mesh ID -> abbreviation options
+- [Musketeer] four editable orb names -> abbreviations
+- [Bard Inspector] **ShowCompactPanel** (default false), TextSize (default 0.003), PanelScale, SideOffsetMetres, HeightMetres
+
+Important: v0.2.1's old ShowTemporaryPanel is no longer used; leave it as-is. If you enable ShowCompactPanel, the panel is much smaller and retains automatic change logging to BepInEx/AbilityLabelsBardMap.txt.
+
+## Build and publish to GitHub for RebornManager
+
+From any PowerShell folder:
 
     $repo = "$env:USERPROFILE\OneDrive\Documents\OrbusAbilityLabels"
     git -C $repo pull --ff-only
     & "$repo\release.ps1"
 
-release.ps1 reuses the previously cached My Orbus Renewed BepInEx interop references instead of prompting for a game installation. It only compiles and publishes the DLL on GitHub; RebornManager installs it into the chosen instance.
+The release script automatically uses saved My Orbus Renewed interop, compiles and publishes the DLL on GitHub. It doesn't install or touch game files itself. If errors occur, send the terminal output. This version is source-committed and still needs compilation/VR verification.
 
-## Options
+## Safety
 
-Once loaded, BepInEx/config/com.horizon.orbusabilitylabels.cfg offers:
-
-- Labels: Enabled, ShowBard, ShowMusketeer, Scale, AboveOrbMetres, TowardHeadMetres
-- Musketeer: Shield, Renew, Gravity, BigHeal (text is user-editable)
-- Bard: Instrument2, Instrument3, Instrument4, Instrument5, Instrument6, Instrument8 (temporary IDs; user-editable)
-- Diagnostics: EnableManualCapture and NearbyScanRadiusMetres
-
-Leave an individual label blank to hide it. The eventual RebornMenu settings can use these BepInEx config entries with no dependency today.
-
-## Diagnostics and safety history
-
-v0.1.0 performed a synchronous scan of about 82,000 Unity objects and coincided with a frozen-eye image in VR. Do not use v0.1.0 in VR. v0.1.1 replaced that with a targeted probe and successfully saved three user captures in 12, 4 and 4 ms, respectively. v0.2.0 retains only the smaller optional diagnostic on Ctrl+Shift+L. The visual test does not need that shortcut.
-
-## v0.2.1 - temporary Bard mesh identification UI
-
-This is the recommended build for mapping Bard instruments during ONE VR session. The earlier v0.2.0 visual-label experiment remains, but this build additionally shows a small inspector beside the Bard instruments only while Bard is equipped.
-
-The panel reads the SIX local `EquippedSlot1` slots under the actual `NotesContainer` and updates every 0.35 seconds. Each row displays SLOT, Instrument ID (I3, I4, etc), and the actual MeshFilter.sharedMesh.name (for example `healOrb-01`). Empty slots show `--`. A new/unseen instrument also automatically gets a temporary `B<number>` floating label.
-
-**Suggested single-session workflow:** Equip Bard, open your in-game ability list to learn a skill name, swap one instrument at a time, and read the changed ID/mesh on this temporary panel. Repeat until you have matched all abilities. You don't need to stop the game between swaps. Report the corresponding names afterwards; our code does not claim to read the game's ability names yet.
-
-Every time the local Bard loadout changes, the plugin ALSO appends the entire current six-row mapping to `My Orbus Renewed/BepInEx/AbilityLabelsBardMap.txt`. Send this file after your session alongside the ability names (and optionally screenshots). The auto-log is capped to 120 changed snapshots per session and never scans the whole scene.
-
-The panel is purely read-only and automatically hides on class change. It floats next to the instruments, not on the VR camera. It never edits skills or inventory.
-
-Options under `[Bard Inspector]` in BepInEx config: `ShowTemporaryPanel` (default true), `PanelScale`, `SideOffsetMetres` and `HeightMetres`. Once mapping is done, set ShowTemporaryPanel=false; a future version will remove it.
-
-Build from any PowerShell folder with the usual `git -C $repo pull --ff-only` then `& $repo\release.ps1`. RebornManager will install the GitHub release after publication. If compilation fails, send output instead of manually copying DLLs.
+v0.1.0's old 82,000-object scan caused a VR freeze; don't use that old version. Current captures are targeted and optional only (Ctrl+Shift+L). The visual mod doesn't alter ability behaviour, networking or VR inputs. Supported only for observed local rig paths.
