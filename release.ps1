@@ -123,7 +123,7 @@ try {
     Write-Host '[2/2] Publishing exact compiled DLL to GitHub Releases...' -ForegroundColor Yellow
     $commit = (& git rev-parse HEAD).Trim()
     Assert-Success 'Reading commit'
-    $notes = "AbilityLabels $tag: lightweight, targeted Bard/Musketeer local-rig diagnostics. Removes the original 82k-object main-thread scene scan that could freeze VR. No labels yet. Press Ctrl+Shift+L only if further diagnostics are needed; see README."
+    $notes = "AbilityLabels ${tag}: lightweight, targeted Bard/Musketeer local-rig diagnostics. Removes the original 82k-object main-thread scene scan that could freeze VR. No labels yet. Press Ctrl+Shift+L only if further diagnostics are needed; see README."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$commit,
               '--title',"OrbusAbilityLabels $tag (diagnostic)",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
