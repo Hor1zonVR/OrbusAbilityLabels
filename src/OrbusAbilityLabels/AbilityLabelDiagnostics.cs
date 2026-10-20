@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -10,9 +11,9 @@ using UnityEngine;
 namespace OrbusAbilityLabels;
 
 /// <summary>
-/// Read-only, bounded, explicitly triggered inspection to discover how Orbus
-/// represents the Bard instruments and Musketeer ability orbs. The diagnostic
-/// never changes game objects, ability values, inputs, or network state.
+/// Safe, read-only diagnostics for already-identified local Bard and Musketeer
+/// objects. Deliberately NEVER enumerates the game's entire object registry:
+/// the original v0.1.0 synchronous ~82,000-object scan could stall VR rendering.
 /// </summary>
 public sealed class AbilityLabelDiagnostics : MonoBehaviour
 {
@@ -24,36 +25,26 @@ public sealed class AbilityLabelDiagnostics : MonoBehaviour
     private const int Ctrl = 0x11;
     private const int Shift = 0x10;
     private const int L = 0x4C;
-    private const int MaxGameObjects = 85000;
-    private const int MaxKeywordRows = 140;
-    private const int MaxScriptObjects = 30000;
-    private const int MaxScriptRows = 90;
-    private const int MaxRendererObjects = 45000;
-    private const int MaxNearbyRows = 95;
-    private const int MaxCaptures = 12;
+    private const int MaxCaptures = 8;
+    private const int MaxNodes = 70;
+    private const int MaxDepth = 3;
 
-    private static readonly string[] Terms =
+    // These are grounded in the v0.1.0 My Orbus Renewed capture.
+    // Names identify candidates, NOT guaranteed skill names or ownership.
+    private static readonly string[] KnownMusketeerObjects =
     {
-        "bard", "musketeer", "musket", "flintlock", "rifle", "shotgun",
-        "instrument", "xylophone", "mallet", "music", "melody", "note",
-        "song", "heal", "shield", "renew", "cure", "decurs", "poison",
-        "gravity", "frost", "spell", "ability", "skill", "projectile",
-        "orb", "bullet", "spellslot", "quickslot"
+        "ShieldOrb(Clone)",
+        "RenewOrb(Clone)",
+        "GravityOrb(Clone)",
+        "BigHealOrb(Clone)"
     };
 
-    private sealed class NearbyRenderer
-    {
-        internal Renderer Renderer = null!;
-        internal float Distance;
-        internal float Forward;
-    }
-
     private bool _lastChord;
-    private bool _scanning;
-    private int _captureCount;
+    private bool _busy;
+    private int _captures;
     private string _reportPath = "";
 
-    private static bool Held(int key) => (GetAsyncKeyState(key) & 0x8000) != 0;
+    private static bool Held(int code) => (GetAsyncKeyState(code) & 0x8000) != 0;
 
     private void Start()
     {
@@ -61,68 +52,50 @@ public sealed class AbilityLabelDiagnostics : MonoBehaviour
         try
         {
             File.WriteAllText(_reportPath,
-                "OrbusAbilityLabels v0.1.0 - local, manually triggered diagnostic" + Environment.NewLine +
-                "Snapshots do not read game account credentials or ability field values." + Environment.NewLine +
-                "Review object names before sharing this file (other players may be nearby)." +
+                "OrbusAbilityLabels v0.1.1 - TARGETED read-only local diagnostic" +
+                Environment.NewLine +
+                "No full-scene enumeration. No network, ability data or object changes." +
+                Environment.NewLine +
+                "Captures inspect only the local rig's weapon nodes and four known orb objects." +
                 Environment.NewLine + Environment.NewLine);
         }
         catch (Exception ex)
         {
-            Plugin.Logger.LogWarning("[AbilityLabels] Cannot prepare report: " + ex.Message);
+            Plugin.Logger.LogWarning("[AbilityLabels] Report setup failed: " + ex.Message);
         }
-        Plugin.Logger.LogInfo("[AbilityLabels] Ctrl+Shift+L captures one ability scene snapshot; maximum 12 per launch.");
+
+        Plugin.Logger.LogInfo("[AbilityLabels] v0.1.1 lightweight diagnostics ready: Ctrl+Shift+L.");
+        Plugin.Logger.LogInfo("[AbilityLabels] Global GameObject / Renderer / MonoBehaviour scans disabled.");
     }
 
     private void Update()
     {
-        bool chord = Application.isFocused && Held(Ctrl) && Held(Shift) && Held(L);
-        if (chord && !_lastChord && !_scanning && _captureCount < MaxCaptures &&
-            Plugin.EnableDiagnostics.Value)
+        bool pressed = Application.isFocused && Held(Ctrl) && Held(Shift) && Held(L);
+        if (pressed && !_lastChord && !_busy &&
+            Plugin.EnableDiagnostics.Value && _captures < MaxCaptures)
             Capture();
-        _lastChord = chord;
+        _lastChord = pressed;
     }
 
-    private static string Clean(string? value, int maxLength = 82)
+    private static string Clean(string? value, int limit = 100)
     {
         if (string.IsNullOrWhiteSpace(value)) return "(unnamed)";
-        string result = value.Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ').Trim();
-        return result.Length <= maxLength ? result : result.Substring(0, maxLength) + "...";
+        string s = value.Replace('\r', ' ').Replace('\n', ' ')
+            .Replace('\t', ' ').Trim();
+        return s.Length > limit ? s.Substring(0, limit) + "..." : s;
     }
 
-    private static bool Matches(string? raw)
+    private static string PathOf(Transform? node)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return false;
-        string s = raw.ToLowerInvariant();
-        foreach (string term in Terms)
-        {
-            // Avoid the word "Orbus" itself accidentally matching "orb".
-            if (term == "orb")
-            {
-                if (s.Contains("orb") && !s.Contains("orbus")) return true;
-            }
-            else if (s.Contains(term)) return true;
-        }
-        return false;
-    }
-
-    private static bool Live(GameObject go)
-    {
-        try { return go.scene.IsValid() && go.scene.isLoaded; }
-        catch { return false; }
-    }
-
-    private static string PathOf(Transform? node, int maxDepth = 8)
-    {
-        if (node == null) return "(null)";
         var parts = new List<string>();
-        Transform? current = node;
-        while (current != null && parts.Count < maxDepth)
+        int count = 0;
+        while (node != null && count++ < 9)
         {
-            parts.Add(Clean(current.gameObject.name, 65));
-            current = current.parent;
+            parts.Add(Clean(node.name, 60));
+            node = node.parent;
         }
         parts.Reverse();
-        return (current == null ? "" : ".../") + string.Join("/", parts);
+        return (node != null ? ".../" : "") + string.Join("/", parts);
     }
 
     private static string NativeType(Component component)
@@ -133,228 +106,208 @@ public sealed class AbilityLabelDiagnostics : MonoBehaviour
             if (klass != IntPtr.Zero)
             {
                 string type = IL2CPP.il2cpp_class_get_name_(klass) ?? "";
-                string space = IL2CPP.il2cpp_class_get_namespace_(klass) ?? "";
-                if (type.Length > 0) return (space.Length == 0 ? "" : space + ".") + type;
+                string ns = IL2CPP.il2cpp_class_get_namespace_(klass) ?? "";
+                if (type.Length > 0)
+                    return ns.Length == 0 ? type : ns + "." + type;
             }
         }
         catch { }
-        return component.GetType().FullName ?? component.GetType().Name;
+        return component.GetType().Name;
     }
 
-    private static string Components(GameObject go, int limit = 9)
+    private static string ComponentTypes(GameObject gameObject)
     {
-        var parts = new List<string>();
+        var names = new List<string>();
         try
         {
-            foreach (Component component in go.GetComponents<Component>())
+            foreach (Component component in gameObject.GetComponents<Component>())
             {
                 if (component == null) continue;
-                if (parts.Count >= limit) break;
-                parts.Add(Clean(NativeType(component), 90));
+                if (names.Count >= 12) break;
+                names.Add(Clean(NativeType(component), 75));
             }
         }
-        catch { return "(components unavailable)"; }
-        return parts.Count == 0 ? "(none)" : string.Join(", ", parts);
+        catch (Exception ex)
+        {
+            names.Add("(component read failed: " + Clean(ex.Message, 50) + ")");
+        }
+        return string.Join(", ", names);
     }
 
-    private static Camera? HeadsetCamera()
+    private static void Describe(StringBuilder text, Transform node, string label,
+        Vector3 headPosition, bool hasHead)
     {
-        Camera? fallback = null;
         try
         {
-            foreach (Camera camera in Camera.allCameras)
+            GameObject go = node.gameObject;
+            text.Append(label).Append(" path=").Append(PathOf(node))
+                .Append(" active=").Append(go.activeInHierarchy);
+            if (hasHead)
             {
-                if (camera == null || !camera.isActiveAndEnabled) continue;
-                if (fallback == null) fallback = camera;
-                string name = camera.name ?? "";
-                if (camera.stereoEnabled &&
-                    name.IndexOf("UI on Top", StringComparison.OrdinalIgnoreCase) < 0)
-                    return camera;
+                float distance = Vector3.Distance(headPosition, node.position);
+                text.Append(" headsetDistanceMetres=")
+                    .Append(distance.ToString("0.00"));
             }
-            if (Camera.main != null && Camera.main.isActiveAndEnabled)
-                return Camera.main;
+            MeshFilter filter = go.GetComponent<MeshFilter>();
+            if (filter != null && filter.sharedMesh != null)
+                text.Append(" mesh=").Append(Clean(filter.sharedMesh.name, 75));
+            text.Append(" types=").AppendLine(ComponentTypes(go));
         }
-        catch { }
-        return fallback;
+        catch (Exception ex)
+        {
+            text.Append(label).Append(" inspection failed: ")
+                .AppendLine(Clean(ex.Message));
+        }
     }
 
-    private static void ScanNamedObjects(StringBuilder report)
+    private static void SmallHierarchy(StringBuilder text, Transform? root,
+        string title, Vector3 head, bool hasHead)
     {
-        report.AppendLine("=== LOADED GAME OBJECTS WITH ABILITY-RELATED NAMES ===");
-        int inspected = 0, matches = 0, errors = 0;
-        try
+        text.AppendLine("=== " + title + " ===");
+        if (root == null)
         {
-            foreach (GameObject go in Resources.FindObjectsOfTypeAll<GameObject>())
-            {
-                if (++inspected > MaxGameObjects) break;
-                if (go == null) continue;
-                try
-                {
-                    if (!Matches(go.name)) continue;
-                    matches++;
-                    if (matches > MaxKeywordRows) continue;
-                    report.Append("OBJECT active=").Append(go.activeInHierarchy)
-                        .Append(" live=").Append(Live(go))
-                        .Append(" path=").Append(PathOf(go.transform))
-                        .Append(" types=").AppendLine(Components(go));
-                }
-                catch { errors++; }
-            }
-        }
-        catch (Exception ex) { report.AppendLine("Object enumeration: " + Clean(ex.Message)); }
-        report.Append("Objects inspected=").Append(inspected).Append(" matching=")
-            .Append(matches).Append(" printed=").Append(Math.Min(matches, MaxKeywordRows))
-            .Append(" errors=").AppendLine(errors.ToString());
-        report.AppendLine();
-    }
-
-    private static void ScanScripts(StringBuilder report)
-    {
-        report.AppendLine("=== NATIVE GAME SCRIPT TYPES MATCHING ABILITY TERMS ===");
-        int inspected = 0, matches = 0, errors = 0;
-        var unique = new HashSet<string>(StringComparer.Ordinal);
-        try
-        {
-            foreach (MonoBehaviour component in Resources.FindObjectsOfTypeAll<MonoBehaviour>())
-            {
-                if (++inspected > MaxScriptObjects) break;
-                if (component == null) continue;
-                try
-                {
-                    string type = NativeType(component);
-                    if (!Matches(type)) continue;
-                    matches++;
-                    if (!unique.Add(type) || unique.Count > MaxScriptRows) continue;
-                    report.Append("SCRIPT ").Append(Clean(type, 130))
-                        .Append(" attachedTo=").AppendLine(PathOf(component.transform, 6));
-                }
-                catch { errors++; }
-            }
-        }
-        catch (Exception ex) { report.AppendLine("Script enumeration: " + Clean(ex.Message)); }
-        report.Append("Scripts inspected=").Append(inspected)
-            .Append(" matches=").Append(matches)
-            .Append(" unique=").Append(unique.Count)
-            .Append(" printed=").Append(Math.Min(unique.Count, MaxScriptRows))
-            .Append(" errors=").AppendLine(errors.ToString());
-        report.AppendLine();
-    }
-
-    private static void ScanNearbyRenderers(StringBuilder report)
-    {
-        report.AppendLine("=== VISIBLE RENDERERS NEAR HEADSET ===");
-        Camera? head = HeadsetCamera();
-        if (head == null)
-        {
-            report.AppendLine("No active camera found; nearby inspection skipped.");
+            text.AppendLine("Not present for this class/session.");
             return;
         }
-
-        report.AppendLine("Camera name=" + Clean(head.name) +
-                          " stereo=" + head.stereoEnabled +
-                          ". Distances are relative to headset (no world coordinates).");
-        var nearby = new List<NearbyRenderer>();
-        int inspected = 0, errors = 0;
-        Vector3 origin = head.transform.position;
-        Vector3 facing = head.transform.forward;
-        float radius = Plugin.NearbyScanRadius.Value;
-
-        try
+        var queue = new Queue<(Transform Node, int Depth)>();
+        queue.Enqueue((root, 0));
+        int checkedCount = 0;
+        while (queue.Count != 0 && checkedCount < MaxNodes)
         {
-            foreach (Renderer renderer in Resources.FindObjectsOfTypeAll<Renderer>())
-            {
-                if (++inspected > MaxRendererObjects) break;
-                if (renderer == null) continue;
-                try
-                {
-                    if (!renderer.enabled || !renderer.gameObject.activeInHierarchy ||
-                        !Live(renderer.gameObject)) continue;
-                    Vector3 center = renderer.bounds.center;
-                    Vector3 offset = center - origin;
-                    float distance = offset.magnitude;
-                    if (distance < 0.15f || distance > radius) continue;
-                    if (Vector3.Dot(facing, offset / distance) < -0.2f) continue;
-                    // Ignore enormous rooms, terrain and background structures.
-                    Vector3 size = renderer.bounds.size;
-                    if (size.x > 1.8f || size.y > 1.8f || size.z > 1.8f) continue;
-                    nearby.Add(new NearbyRenderer
-                    {
-                        Renderer = renderer,
-                        Distance = distance,
-                        Forward = Vector3.Dot(facing, offset / distance)
-                    });
-                }
-                catch { errors++; }
-            }
-        }
-        catch (Exception ex) { report.AppendLine("Renderer enumeration: " + Clean(ex.Message)); }
+            var current = queue.Dequeue();
+            Transform node = current.Node;
+            if (node == null) continue;
+            checkedCount++;
+            Describe(text, node, "LOCAL", head, hasHead);
 
-        nearby.Sort((a, b) => a.Distance.CompareTo(b.Distance));
-        int shown = 0;
-        var seenPaths = new HashSet<string>(StringComparer.Ordinal);
-        foreach (NearbyRenderer item in nearby)
-        {
-            if (shown >= MaxNearbyRows) break;
+            if (current.Depth >= MaxDepth) continue;
             try
             {
-                Renderer renderer = item.Renderer;
-                string path = PathOf(renderer.transform, 7);
-                if (!seenPaths.Add(path)) continue;
-                shown++;
-                string mesh = "(no MeshFilter)";
-                MeshFilter filter = renderer.GetComponent<MeshFilter>();
-                if (filter != null && filter.sharedMesh != null)
-                    mesh = Clean(filter.sharedMesh.name);
-
-                report.Append("NEAR d=").Append(item.Distance.ToString("0.00"))
-                    .Append("m front=").Append(item.Forward.ToString("0.00"))
-                    .Append(" path=").Append(path)
-                    .Append(" mesh=").Append(mesh)
-                    .Append(" components=").Append(Components(renderer.gameObject, 7));
-
-                Transform? parent = renderer.transform.parent;
-                if (parent != null)
-                    report.Append(" parentTypes=").Append(Components(parent.gameObject, 7));
-                report.AppendLine();
+                int children = Math.Min(node.childCount, 20);
+                for (int i = 0; i < children; i++)
+                    queue.Enqueue((node.GetChild(i), current.Depth + 1));
             }
-            catch { errors++; }
+            catch (Exception ex)
+            {
+                text.AppendLine("Children unavailable: " + Clean(ex.Message));
+            }
         }
-        report.Append("Renderers inspected=").Append(inspected)
-            .Append(" nearby=").Append(nearby.Count)
-            .Append(" printed=").Append(shown)
-            .Append(" errors=").AppendLine(errors.ToString());
-        report.AppendLine();
+        text.Append("Local hierarchy nodes inspected=").Append(checkedCount)
+            .Append(" (max ").Append(MaxNodes).AppendLine(")");
+    }
+
+    private static Transform? FindChild(Transform? root, string relative)
+    {
+        if (root == null) return null;
+        try { return root.Find(relative); }
+        catch { return null; }
+    }
+
+    private static void InspectKnownMusketeerOrbs(StringBuilder text,
+        Vector3 head, bool hasHead)
+    {
+        text.AppendLine("=== KNOWN MUSKETEER ORBS (ACTIVE OBJECTS ONLY) ===");
+        foreach (string name in KnownMusketeerObjects)
+        {
+            try
+            {
+                // GameObject.Find is an exact-name lookup, not the original
+                // Resources.FindObjectsOfTypeAll global inventory scan.
+                GameObject go = GameObject.Find(name);
+                if (go == null)
+                {
+                    text.AppendLine(name + " not currently active/found");
+                    continue;
+                }
+                float distance = hasHead
+                    ? Vector3.Distance(head, go.transform.position) : -1f;
+                if (hasHead && distance > Plugin.NearbyScanRadius.Value)
+                {
+                    text.AppendLine(name + " found but not near local headset (" +
+                        distance.ToString("0.0") + "m); skipped as possibly remote.");
+                    continue;
+                }
+                Describe(text, go.transform, "ORB", head, hasHead);
+                // Only show immediate child names; no thousands of particle objects.
+                int count = Math.Min(go.transform.childCount, 8);
+                for (int j = 0; j < count; j++)
+                {
+                    Transform child = go.transform.GetChild(j);
+                    if (child != null)
+                        text.Append("    child=").Append(Clean(child.name, 75))
+                            .Append(" active=").AppendLine(child.gameObject.activeInHierarchy.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                text.Append(name).Append(": ")
+                    .AppendLine(Clean(ex.Message));
+            }
+        }
     }
 
     private void Capture()
     {
-        _scanning = true;
-        _captureCount++;
+        _busy = true;
+        _captures++;
+        Stopwatch watch = Stopwatch.StartNew();
         try
         {
-            var report = new StringBuilder(50000);
-            report.AppendLine("===============================================================");
-            report.Append("CAPTURE ").Append(_captureCount)
-                .Append(" UTC ").Append(DateTimeOffset.UtcNow.ToString("O")).AppendLine();
-            report.AppendLine("Player should record separately: class, equipped abilities, and which is being held.");
-            report.AppendLine("Read-only: no ability state, account text or world coordinates are read.");
+            var report = new StringBuilder(8000);
+            report.AppendLine("================================================");
+            report.Append("CAPTURE ").Append(_captures)
+                .Append(" UTC ").Append(DateTimeOffset.UtcNow.ToString("O"))
+                .AppendLine();
+            report.AppendLine("Targeted local inspection only. No full-scene scans.");
+
+            Vector3 head = Vector3.zero;
+            bool hasHead = false;
+            try
+            {
+                foreach (Camera camera in Camera.allCameras)
+                {
+                    if (camera == null || !camera.isActiveAndEnabled ||
+                        !camera.stereoEnabled ||
+                        !string.Equals(camera.name, "Camera (eye)",
+                            StringComparison.Ordinal)) continue;
+                    head = camera.transform.position;
+                    hasHead = true;
+                    break;
+                }
+            }
+            catch { }
+
+            // PlayerRigv4 is the actual local rig found in the user's Renewed logs.
+            // Never fall back to other-player avatars or wardrobe preview objects.
+            GameObject rig = GameObject.Find("PlayerRigv4");
+            Transform? player = rig != null ? rig.transform : null;
+            report.AppendLine(player == null
+                ? "Local PlayerRigv4 not found."
+                : "Local PlayerRigv4 found; stereo camera=" + hasHead);
+
+            SmallHierarchy(report,
+                FindChild(player, "Avatar/Bard(Clone)/Instruments/NotesContainer"),
+                "BARD EQUIPPED INSTRUMENT SLOTS", head, hasHead);
+            SmallHierarchy(report,
+                FindChild(player, "Controller (right)/OrbLauncher"),
+                "MUSKETEER LOCAL GUN AND FOUR SLOTS", head, hasHead);
+            InspectKnownMusketeerOrbs(report, head, hasHead);
+            report.AppendLine("END CAPTURE");
             report.AppendLine();
 
-            ScanNamedObjects(report);
-            ScanScripts(report);
-            ScanNearbyRenderers(report);
-
-            report.AppendLine("END CAPTURE " + _captureCount);
-            report.AppendLine();
             File.AppendAllText(_reportPath, report.ToString());
-            Plugin.Logger.LogInfo("[AbilityLabels] Capture " + _captureCount +
-                " saved to " + _reportPath +
-                " (" + report.Length + " characters).");
+            watch.Stop();
+            Plugin.Logger.LogInfo("[AbilityLabels] Safe capture " + _captures +
+                " saved (" + report.Length + " chars, " +
+                watch.ElapsedMilliseconds + "ms).");
+            if (watch.ElapsedMilliseconds > 75)
+                Plugin.Logger.LogWarning("[AbilityLabels] Capture took " +
+                    watch.ElapsedMilliseconds + "ms; avoid repeated testing in VR.");
         }
         catch (Exception ex)
         {
-            Plugin.Logger.LogError("[AbilityLabels] Snapshot failed: " + ex);
+            Plugin.Logger.LogError("[AbilityLabels] Capture failed: " + ex);
         }
-        finally { _scanning = false; }
+        finally { _busy = false; }
     }
 }
