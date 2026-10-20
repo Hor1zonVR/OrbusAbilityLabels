@@ -1,12 +1,12 @@
 # OrbusAbilityLabels
 
-Client-side BepInEx IL2CPP quality-of-life mod for OrbusVR: Reborn Community Edition (future other editions subject to testing).
+Client-side BepInEx IL2CPP quality-of-life mod for OrbusVR. Diagnostics collected on **My Orbus Renewed** (other instances need independent testing).
 
 **Planned feature:** small readable abbreviations (CW, SH, RN, etc.) *above* the existing Bard instruments and Musketeer ability orbs. Labels should follow the actual equipped abilities, not a separate screen HUD. RebornMenu customisation will come after the mapping works.
 
-## Current status — v0.1.0 diagnostic, no labels yet
+## Current status — v0.1.1 targeted diagnostic, no labels yet
 
-This first release is **read-only diagnostics only**. We do not yet know the game's reliable ability-ID, slot, and transform mappings, so it deliberately does **not** render a label or assume which orb is which. No ability values, input events or networking are modified.
+This release is **read-only diagnostics only**. v0.1.0 inspected ~82,000 Unity objects synchronously on the render/update thread and could freeze VR; **do not use v0.1.0 in VR again**. v0.1.1 replaces that with a tiny targeted local-object survey. We do not yet know the game's reliable ability-ID, slot, and transform mappings, so it deliberately does **not** render a label or assume which orb is which. No ability values, input events or networking are modified.
 
 1. Install via RebornManager when the first release is available, or import a locally built `OrbusAbilityLabels.dll` into your test instance.
 2. Launch the game with BepInEx working.
@@ -15,7 +15,7 @@ This first release is **read-only diagnostics only**. We do not yet know the gam
 5. Exit the game. Read `BepInEx/AbilityLabelsReport.txt` in the game instance, not your repository.
 6. Share the report **after reviewing it for any nearby player names**. Tell the developer which capture was Bard and which was Musketeer, plus equipped abilities if known.
 
-The report includes bounded native IL2CPP component types, likely ability-related object paths, and nearby weapon renderer hierarchy. It does not capture coordinates, field values, chat or account credentials. The scan runs **only** on the hotkey (maximum 12 captures per launch). Nearby scanning reads objects within two metres of the selected stereo camera.
+The v0.1.1 report inspects the local Bard instrument slots, local Musketeer launcher, and four previously identified active orb object names only. It no longer scans the Unity object registry. It does not capture coordinates, field values, chat or account credentials. The scan runs **only** on the hotkey (maximum 12 captures per launch). Nearby scanning reads objects within two metres of the selected stereo camera.
 
 ## Local build and publishing
 
