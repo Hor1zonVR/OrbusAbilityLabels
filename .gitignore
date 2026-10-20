@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+.build-refs-path.txt
+*.user
+*.dll
+*.zip
