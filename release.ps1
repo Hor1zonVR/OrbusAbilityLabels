@@ -103,9 +103,14 @@ try {
     $match = [regex]::Match($source, '(?s)\[BepInPlugin\(\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"(?<v>\d+\.\d+\.\d+)"')
     if (-not $match.Success) { throw 'Cannot read BepInPlugin version in Plugin.cs.' }
     $tag = 'v' + $match.Groups['v'].Value
-    $already = & gh release view $tag --repo $repo --json tagName 2>$null
-    if ($LASTEXITCODE -eq 0 -and $already) {
-        throw "$tag is already released. Source version must be incremented before publishing again."
+    # A first release does not exist yet. In Windows PowerShell 5.1, a
+    # 'gh release view' 404 on stderr becomes a terminating error with
+    # $ErrorActionPreference='Stop', even when stderr is redirected.
+    # git ls-remote succeeds with *empty output* for an unused tag.
+    $matchingTags = @(& git ls-remote --tags --refs origin "refs/tags/$tag")
+    Assert-Success 'Checking remote version tags'
+    if ($matchingTags.Count -gt 0) {
+        throw "$tag already exists on GitHub. Increment Plugin.cs version before publishing again."
     }
 
     Write-Host "[1/2] Building OrbusAbilityLabels $tag against local interop..." -ForegroundColor Yellow
