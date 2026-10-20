@@ -21,7 +21,8 @@ $required = @(
     'BepInEx\core\BepInEx.Unity.IL2CPP.dll',
     'BepInEx\core\Il2CppInterop.Runtime.dll',
     'BepInEx\interop\Il2Cppmscorlib.dll',
-    'BepInEx\interop\UnityEngine.CoreModule.dll'
+    'BepInEx\interop\UnityEngine.CoreModule.dll',
+    'BepInEx\interop\UnityEngine.TextRenderingModule.dll'
 )
 
 function Assert-Success([string]$name) {
@@ -123,9 +124,9 @@ try {
     Write-Host '[2/2] Publishing exact compiled DLL to GitHub Releases...' -ForegroundColor Yellow
     $commit = (& git rev-parse HEAD).Trim()
     Assert-Success 'Reading commit'
-    $notes = "AbilityLabels ${tag}: lightweight, targeted Bard/Musketeer local-rig diagnostics. Removes the original 82k-object main-thread scene scan that could freeze VR. No labels yet. Press Ctrl+Shift+L only if further diagnostics are needed; see README."
+    $notes = "AbilityLabels ${tag}: first world-space VR label preview. Musketeer SH/RN/GR/BH on four recognized named orb objects. Bard has temporary B-number instrument ID markers, not ability names. No full-scene scans or game modifications. See README."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$commit,
-              '--title',"OrbusAbilityLabels $tag (diagnostic)",'--notes',$notes)
+              '--title',"OrbusAbilityLabels $tag (visual preview)",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
     & gh @args
     Assert-Success 'GitHub release'

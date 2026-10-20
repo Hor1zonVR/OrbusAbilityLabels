@@ -52,7 +52,7 @@ public sealed class AbilityLabelDiagnostics : MonoBehaviour
         try
         {
             File.WriteAllText(_reportPath,
-                "OrbusAbilityLabels v0.1.1 - TARGETED read-only local diagnostic" +
+                "OrbusAbilityLabels v0.2.0 - TARGETED read-only local diagnostic" +
                 Environment.NewLine +
                 "No full-scene enumeration. No network, ability data or object changes." +
                 Environment.NewLine +
@@ -64,7 +64,7 @@ public sealed class AbilityLabelDiagnostics : MonoBehaviour
             Plugin.Logger.LogWarning("[AbilityLabels] Report setup failed: " + ex.Message);
         }
 
-        Plugin.Logger.LogInfo("[AbilityLabels] v0.1.1 lightweight diagnostics ready: Ctrl+Shift+L.");
+        Plugin.Logger.LogInfo("[AbilityLabels] v0.2.0 lightweight diagnostics ready: Ctrl+Shift+L.");
         Plugin.Logger.LogInfo("[AbilityLabels] Global GameObject / Renderer / MonoBehaviour scans disabled.");
     }
 
