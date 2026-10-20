@@ -5,7 +5,7 @@ using BepInEx.Unity.IL2CPP;
 
 namespace OrbusAbilityLabels;
 
-[BepInPlugin("com.horizon.orbusabilitylabels", "OrbusAbilityLabels", "0.2.2")]
+[BepInPlugin("com.horizon.orbusabilitylabels", "OrbusAbilityLabels", "0.2.3")]
 public sealed class Plugin : BasePlugin
 {
     internal static BepInEx.Logging.ManualLogSource Logger = null!;
@@ -57,9 +57,14 @@ public sealed class Plugin : BasePlugin
         LabelScale = Config.Bind("Labels", "Scale", 1f,
             new ConfigDescription("Label size multiplier.",
                 new AcceptableValueRange<float>(0.5f, 2f)));
-        TextCharacterSize = Config.Bind("Labels", "TextSize", 0.0025f,
-            new ConfigDescription("Physical VR font size. Reduced greatly from the huge v0.2.1 text.",
-                new AcceptableValueRange<float>(0.001f, 0.01f)));
+        // New config key deliberately: v0.2.2 wrote TextSize=0.0025
+        // to existing users' .cfg files. Reusing that key would preserve
+        // the too-small old value instead of applying the safer new default.
+        // Scale continues to work as a fine-adjustment multiplier.
+        TextCharacterSize = Config.Bind("Labels", "ReadableTextSize", 0.004f,
+            new ConfigDescription("Bright white label font size in VR. About 60% larger than v0.2.2. " +
+                "Replaces legacy TextSize setting.",
+                new AcceptableValueRange<float>(0.0015f, 0.012f)));
         VerticalOffset = Config.Bind("Labels", "AboveOrbMetres", 0.072f,
             new ConfigDescription("World-up distance above the ability object.",
                 new AcceptableValueRange<float>(0.015f, 0.18f)));
@@ -92,8 +97,9 @@ public sealed class Plugin : BasePlugin
         AddComponent<AbilityLabelVisuals>();
         AddComponent<BardMeshPanel>();
         AddComponent<AbilityLabelDiagnostics>();
-        Log.LogInfo("[AbilityLabels] v0.2.2 COMPACT BARD LABELS loaded.");
+        Log.LogInfo("[AbilityLabels] v0.2.3 HIGH-CONTRAST LABELS loaded.");
         Log.LogInfo("[AbilityLabels] Bard GH/CW/IJ/HA/PR/IN/SP/DF by live mesh; Musketeer SH/RN/GR/BH.");
+        Log.LogInfo("[AbilityLabels] VR text is bright white, 60% larger with the shadow behind; adjust [Labels] ReadableTextSize.");
         Log.LogInfo("[AbilityLabels] Tiny Bard debug panel OFF by default; can be enabled via Bard Inspector/ShowCompactPanel.");
     }
 }

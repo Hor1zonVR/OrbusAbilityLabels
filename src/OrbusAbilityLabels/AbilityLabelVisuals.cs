@@ -41,7 +41,7 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
         {
             Plugin.Logger.LogWarning("[AbilityLabels] Font unavailable: " + ex.Message);
         }
-        Plugin.Logger.LogInfo("[AbilityLabels] v0.2.2: compact labels with Bard mesh-name mapping (8 abilities).");
+        Plugin.Logger.LogInfo("[AbilityLabels] v0.2.3: readable bright-white labels with a rear drop shadow.");
         Plugin.Logger.LogInfo("[AbilityLabels] No global object enumeration. No gameplay modifications.");
     }
 
@@ -177,14 +177,18 @@ public sealed class AbilityLabelVisuals : MonoBehaviour
             root.layer = 0;
             root.transform.SetParent(_rig, false);
             TextMesh front = root.AddComponent<TextMesh>();
-            SetupText(front, new Color(1f, 0.96f, 0.82f, 1f));
+            SetupText(front, new Color(1f, 1f, 1f, 1f));
 
             var backing = new GameObject("Shadow");
             backing.layer = 0;
             backing.transform.SetParent(root.transform, false);
-            backing.transform.localPosition = new Vector3(-0.00065f, -0.00065f, -0.0006f);
+            // The front face of these TextMeshes looks toward -Z. Since this
+            // object's +Z points AWAY from the headset, +Z puts the
+            // shadow BEHIND the white letters; -Z had darkened them.
+            backing.transform.localPosition =
+                new Vector3(-0.00048f, -0.00048f, 0.0013f);
             TextMesh shadow = backing.AddComponent<TextMesh>();
-            SetupText(shadow, new Color(0.05f, 0.04f, 0.06f, 0.96f));
+            SetupText(shadow, new Color(0.025f, 0.03f, 0.055f, 0.82f));
 
             root.SetActive(false);
             return new Label { Root = root, Front = front, Shadow = shadow };
