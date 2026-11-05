@@ -32,23 +32,9 @@ public sealed class Plugin : BasePlugin
         Logger = Log;
         Enabled = Config.Bind("Labels", "Enabled", true,
             "Show world-space abbreviations above known local ability objects.");
-        // New key, since existing v0.2.1 config has ShowTemporaryPanel=true.
-        // This preview must NOT show the debug overlay on users' next launch.
-        ShowBardMeshPanel = Config.Bind("Bard Inspector", "ShowCompactPanel", false,
-            "Optional tiny temporary mesh inspector panel; off by default now Bard is mapped.");
-        BardPanelScale = Config.Bind("Bard Inspector", "PanelScale", 1.0f,
-            new ConfigDescription("Temporary Bard inspector panel size.",
-                new AcceptableValueRange<float>(0.5f, 2f)));
-        BardPanelSideOffset = Config.Bind("Bard Inspector", "SideOffsetMetres", 0.53f,
-            new ConfigDescription("Horizontal position of panel next to Bard instruments.",
-                new AcceptableValueRange<float>(-0.65f, 0.65f)));
-        BardPanelHeight = Config.Bind("Bard Inspector", "HeightMetres", 0.17f,
-            new ConfigDescription("Panel height above Bard instruments.",
-                new AcceptableValueRange<float>(0.07f, 0.6f)));
-
-        BardPanelCharacterSize = Config.Bind("Bard Inspector", "TextSize", 0.003f,
-            new ConfigDescription("Physical VR font size for the optional debug panel.",
-                new AcceptableValueRange<float>(0.001f, 0.009f)));
+        // The temporary Bard mesh inspector is retired now that all eight
+        // abilities are mapped. Do not bind its obsolete user config keys.
+        // Its source remains for developers, but the component is not loaded.
 
         ShowBard = Config.Bind("Labels", "ShowBard", true,
             "Show real Bard abbreviations matched to eight named ability meshes.");
@@ -88,18 +74,12 @@ public sealed class Plugin : BasePlugin
         MusketeerNames["GravityOrb(Clone)"] = Config.Bind("Musketeer", "Gravity", "GR", "Short label for GravityOrb.");
         MusketeerNames["BigHealOrb(Clone)"] = Config.Bind("Musketeer", "BigHeal", "BH", "Short label for BigHealOrb; do not assume Cure Wounds.");
 
-        EnableDiagnostics = Config.Bind("Diagnostics", "EnableManualCapture", true,
-            "Optional lightweight targeted Ctrl+Shift+L capture.");
-        NearbyScanRadius = Config.Bind("Diagnostics", "NearbyScanRadiusMetres", 2f,
-            new ConfigDescription("Distance for diagnostic orb capture.",
-                new AcceptableValueRange<float>(0.5f, 3f)));
-
+        // Old capture-only diagnostics no longer run in standard builds.
+        // Avoid re-creating the two diagnostic .cfg entries on every launch.
         AddComponent<AbilityLabelVisuals>();
-        AddComponent<BardMeshPanel>();
-        AddComponent<AbilityLabelDiagnostics>();
         Log.LogInfo("[AbilityLabels] v0.2.3 HIGH-CONTRAST LABELS loaded.");
         Log.LogInfo("[AbilityLabels] Bard GH/CW/IJ/HA/PR/IN/SP/DF by live mesh; Musketeer SH/RN/GR/BH.");
         Log.LogInfo("[AbilityLabels] VR text is bright white, 60% larger with the shadow behind; adjust [Labels] ReadableTextSize.");
-        Log.LogInfo("[AbilityLabels] Tiny Bard debug panel OFF by default; can be enabled via Bard Inspector/ShowCompactPanel.");
+        Log.LogInfo("[AbilityLabels] Retired Bard inspector and diagnostic components are not loaded.");
     }
 }
