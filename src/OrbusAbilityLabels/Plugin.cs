@@ -5,7 +5,7 @@ using BepInEx.Unity.IL2CPP;
 
 namespace OrbusAbilityLabels;
 
-[BepInPlugin("com.horizon.orbusabilitylabels", "OrbusAbilityLabels", "0.2.4")]
+[BepInPlugin("com.horizon.orbusabilitylabels", "OrbusAbilityLabels", "0.2.5")]
 public sealed class Plugin : BasePlugin
 {
     internal static BepInEx.Logging.ManualLogSource Logger = null!;
@@ -42,7 +42,8 @@ public sealed class Plugin : BasePlugin
             "Show the four identified Musketeer orb abbreviations.");
         LabelScale = Config.Bind("Labels", "Scale", 1f,
             new ConfigDescription("Label size multiplier.",
-                new AcceptableValueRange<float>(0.5f, 2f)));
+                new AcceptableValueRange<float>(0.5f, 2f),
+                "RebornMenu.Label=Label Size"));
         // New config key deliberately: v0.2.2 wrote TextSize=0.0025
         // to existing users' .cfg files. Reusing that key would preserve
         // the too-small old value instead of applying the safer new default.
@@ -51,12 +52,24 @@ public sealed class Plugin : BasePlugin
             new ConfigDescription("Bright white label font size in VR. About 60% larger than v0.2.2. " +
                 "Replaces legacy TextSize setting.",
                 new AcceptableValueRange<float>(0.0015f, 0.012f)));
+        // These offsets are read every LateUpdate by AbilityLabelVisuals.
+        // The original defaults are preserved for existing players.
+        // The negative ranges allow players to move labels below the orb,
+        // or away from the headset, rather than only in one direction.
         VerticalOffset = Config.Bind("Labels", "AboveOrbMetres", 0.072f,
-            new ConfigDescription("World-up distance above the ability object.",
-                new AcceptableValueRange<float>(0.015f, 0.18f)));
+            new ConfigDescription(
+                "World-space height relative to each ability orb in metres. " +
+                "Positive goes up; negative goes below the orb.",
+                new AcceptableValueRange<float>(-0.03f, 0.18f),
+                "RebornMenu.Label=Vertical Position (m)",
+                "RebornMenu.Hint=Higher (+) or lower (-) relative to the orb"));
         TowardEyeOffset = Config.Bind("Labels", "TowardHeadMetres", 0.016f,
-            new ConfigDescription("Offset toward headset to avoid clipping into the orb.",
-                new AcceptableValueRange<float>(0f, 0.1f)));
+            new ConfigDescription(
+                "Depth relative to each orb in metres along the headset direction. " +
+                "Positive moves toward you; negative moves away.",
+                new AcceptableValueRange<float>(-0.05f, 0.10f),
+                "RebornMenu.Label=Forward / Backward (m)",
+                "RebornMenu.Hint=Toward you (+) or away from you (-)"));
 
         // Confirmed by user 2026-10-20: bind to LIVE Bard mesh names,
         // NOT InstrumentN object IDs or physical slot positions.
@@ -77,7 +90,7 @@ public sealed class Plugin : BasePlugin
         // Old capture-only diagnostics no longer run in standard builds.
         // Avoid re-creating the two diagnostic .cfg entries on every launch.
         AddComponent<AbilityLabelVisuals>();
-        Log.LogInfo("[AbilityLabels] v0.2.4 labels loaded; retired inspector/diagnostics disabled.");
+        Log.LogInfo("[AbilityLabels] v0.2.5 position/scale controls active; retired inspector/diagnostics disabled.");
         Log.LogInfo("[AbilityLabels] Bard GH/CW/IJ/HA/PR/IN/SP/DF by live mesh; Musketeer SH/RN/GR/BH.");
         Log.LogInfo("[AbilityLabels] VR text is bright white, 60% larger with the shadow behind; adjust [Labels] ReadableTextSize.");
         Log.LogInfo("[AbilityLabels] Retired Bard inspector and diagnostic components are not loaded.");
