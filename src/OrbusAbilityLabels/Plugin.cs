@@ -5,7 +5,7 @@ using BepInEx.Unity.IL2CPP;
 
 namespace OrbusAbilityLabels;
 
-[BepInPlugin("com.horizon.orbusabilitylabels", "OrbusAbilityLabels", "0.2.3")]
+[BepInPlugin("com.horizon.orbusabilitylabels", "OrbusAbilityLabels", "0.2.4")]
 public sealed class Plugin : BasePlugin
 {
     internal static BepInEx.Logging.ManualLogSource Logger = null!;
@@ -77,7 +77,7 @@ public sealed class Plugin : BasePlugin
         // Old capture-only diagnostics no longer run in standard builds.
         // Avoid re-creating the two diagnostic .cfg entries on every launch.
         AddComponent<AbilityLabelVisuals>();
-        Log.LogInfo("[AbilityLabels] v0.2.3 HIGH-CONTRAST LABELS loaded.");
+        Log.LogInfo("[AbilityLabels] v0.2.4 labels loaded; retired inspector/diagnostics disabled.");
         Log.LogInfo("[AbilityLabels] Bard GH/CW/IJ/HA/PR/IN/SP/DF by live mesh; Musketeer SH/RN/GR/BH.");
         Log.LogInfo("[AbilityLabels] VR text is bright white, 60% larger with the shadow behind; adjust [Labels] ReadableTextSize.");
         Log.LogInfo("[AbilityLabels] Retired Bard inspector and diagnostic components are not loaded.");
