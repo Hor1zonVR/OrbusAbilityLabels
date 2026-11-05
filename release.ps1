@@ -124,7 +124,7 @@ try {
     Write-Host '[2/2] Publishing exact compiled DLL to GitHub Releases...' -ForegroundColor Yellow
     $commit = (& git rev-parse HEAD).Trim()
     Assert-Success 'Reading commit'
-    $notes = "AbilityLabels ${tag}: increase VR abbreviation size by 60 percent, change text to full-brightness white and move the dark shadow BEHIND lettering to improve contrast. New [Labels] ReadableTextSize config key ensures existing users receive the improved default despite saved old TextSize. All 8 Bard mesh mappings and Musketeer orb labels are unchanged; debug panel remains off by default. No full-scene scans. See README."
+    $notes = "AbilityLabels ${tag}: native RebornMenu controls for Label Size, Vertical Position (higher/lower), and Forward / Backward (toward or away from headset). Existing offsets/defaults are preserved, expanded ranges allow negative offsets. Live adjustment each frame without a restart. Original 8 Bard and 4 Musketeer mappings preserved. Retired debug panel and diagnostic captures remain unloaded."
     $args = @('release','create',$tag,$dll,'--repo',$repo,'--target',$commit,
               '--title',"OrbusAbilityLabels $tag (readable VR labels)",'--notes',$notes)
     if ($Preview) { $args += '--prerelease' }
